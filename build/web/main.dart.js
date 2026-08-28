@@ -31440,7 +31440,7 @@ b8U(a){var s=B.c.aB(a),r=s.length
 if(r===0)return""
 return B.c.h6(s,"/")?B.c.a1(s,0,r-1):s},
 aXT(){var s,r,q,p=A.b([],t.s),o=new A.aaO(p)
-o.$1("")
+o.$1("https://backend-three-lime-30.vercel.app")
 s=A.vO()
 r=B.c.aB(s.glc(s))
 q=B.c.aB(A.vO().ges()).length===0?"http":A.vO().ges()
