@@ -1,0 +1,2 @@
+# This file overrides the pubspec to exclude native asset packages for web-only builds
+dependency_overrides: {}
