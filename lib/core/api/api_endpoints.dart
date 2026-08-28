@@ -11,25 +11,51 @@ class ApiEndpoints {
   }
 
   static String get baseUrl {
-    final configured = _normalizeBaseUrl(_configuredBaseUrl);
-    if (configured.isNotEmpty) {
-      return configured.endsWith('/api') ? configured : '$configured/api';
+    return baseUrlCandidates.first;
+  }
+
+  static List<String> get baseUrlCandidates {
+    final candidates = <String>[];
+
+    void addCandidate(String value) {
+      final normalized = _normalizeBaseUrl(value);
+      if (normalized.isEmpty) return;
+      final apiUrl =
+          normalized.endsWith('/api') ? normalized : '$normalized/api';
+      if (!candidates.contains(apiUrl)) {
+        candidates.add(apiUrl);
+      }
     }
+
+    addCandidate(_configuredBaseUrl);
 
     if (kIsWeb) {
-      return 'http://127.0.0.1:5000/api';
+      final currentHost = Uri.base.host.trim();
+      final currentScheme = Uri.base.scheme.trim().isEmpty ? 'http' : Uri.base.scheme;
+      if (currentHost.isNotEmpty) {
+        addCandidate('$currentScheme://$currentHost:5000');
+      }
+      addCandidate('http://127.0.0.1:5000');
+      addCandidate('http://localhost:5000');
+    } else {
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.android:
+          addCandidate('http://10.0.2.2:5000');
+          addCandidate('http://127.0.0.1:5000');
+          addCandidate('http://localhost:5000');
+          break;
+        case TargetPlatform.iOS:
+        case TargetPlatform.macOS:
+        case TargetPlatform.windows:
+        case TargetPlatform.linux:
+        case TargetPlatform.fuchsia:
+          addCandidate('http://127.0.0.1:5000');
+          addCandidate('http://localhost:5000');
+          break;
+      }
     }
 
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:5000/api';
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-      case TargetPlatform.windows:
-      case TargetPlatform.linux:
-      case TargetPlatform.fuchsia:
-        return 'http://127.0.0.1:5000/api';
-    }
+    return candidates;
   }
 
   static const String login = '/auth/login';

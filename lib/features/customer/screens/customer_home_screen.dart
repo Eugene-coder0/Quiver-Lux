@@ -58,7 +58,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   Future<void> _showVendorApplicationDialog() async {
     final auth = ref.read(authProvider);
     final account = ref.read(accountProfileProvider);
-    List<Map<String, String>> banks;
+    List<Map<String, dynamic>> banks;
     try {
       final banksResponse =
           await ref.read(apiClientProvider).get(ApiEndpoints.paystackBanks);
@@ -66,17 +66,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       final banksData =
           banksResponse.data['data'] as Map<String, dynamic>? ?? const {};
       banks = (banksData['banks'] as List<dynamic>? ?? const [])
-          .map(
-            (item) => (item as Map).map(
-              (key, value) => MapEntry(
-                key.toString(),
-                value?.toString() ?? '',
-              ),
-            ),
-          )
+          .map((item) => Map<String, dynamic>.from(item as Map))
           .where((bank) => (bank['code'] ?? '').isNotEmpty)
           .toList()
-        ..sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
+        ..sort(
+          (a, b) => a['name']
+              .toString()
+              .compareTo(b['name'].toString()),
+        );
     } catch (error) {
       if (!mounted) return;
       _showFeedback('Unable to open vendor application: $error');
@@ -240,9 +237,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   items: banks
                       .map(
                         (bank) => DropdownMenuItem(
-                          value: bank['code'],
+                          value: bank['code']?.toString(),
                           child: Text(
-                            bank['name'] ?? 'Bank',
+                            bank['name']?.toString() ?? 'Bank',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -254,7 +251,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                         (bank) => Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            bank['name'] ?? 'Bank',
+                            bank['name']?.toString() ?? 'Bank',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),

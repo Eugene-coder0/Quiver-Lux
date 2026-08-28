@@ -60,25 +60,25 @@ class VendorApplication {
 
   factory VendorApplication.fromJson(Map<String, dynamic> json) {
     return VendorApplication(
-      id: json['id'] as String? ?? '',
-      storeName: json['storeName'] as String? ?? '',
-      ownerName: json['ownerName'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      category: json['category'] as String? ?? 'General Luxury',
-      description: json['description'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
-      businessAddress: json['businessAddress'] as String? ?? '',
-      paystackRecipientCode: json['paystackRecipientCode'] as String? ?? '',
-      paystackSubaccountCode: json['paystackSubaccountCode'] as String? ?? '',
-      paystackBusinessName: json['paystackBusinessName'] as String? ?? '',
-      paystackAccountName: json['paystackAccountName'] as String? ?? '',
-      paystackAccountNumber: json['paystackAccountNumber'] as String? ?? '',
-      paystackBankCode: json['paystackBankCode'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      storeName: json['storeName']?.toString() ?? '',
+      ownerName: json['ownerName']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'General Luxury',
+      description: json['description']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      businessAddress: json['businessAddress']?.toString() ?? '',
+      paystackRecipientCode: json['paystackRecipientCode']?.toString() ?? '',
+      paystackSubaccountCode: json['paystackSubaccountCode']?.toString() ?? '',
+      paystackBusinessName: json['paystackBusinessName']?.toString() ?? '',
+      paystackAccountName: json['paystackAccountName']?.toString() ?? '',
+      paystackAccountNumber: json['paystackAccountNumber']?.toString() ?? '',
+      paystackBankCode: json['paystackBankCode']?.toString() ?? '',
       appliedDate: json['appliedDate'] != null
-          ? DateTime.tryParse(json['appliedDate'] as String) ?? DateTime.now()
+          ? DateTime.tryParse(json['appliedDate'].toString()) ?? DateTime.now()
           : DateTime.now(),
       status: ApprovalStatus.values.firstWhere(
-        (e) => e.name == json['status'],
+        (e) => e.name == json['status']?.toString(),
         orElse: () => ApprovalStatus.pending,
       ),
     );
