@@ -226,8 +226,7 @@ class _AdminStatsGrid extends StatelessWidget {
     final totalProducts = analytics?.totalProducts ?? products.length;
     final totalOrders = analytics?.totalOrders ?? orders.length;
     final totalCustomerSignIns = analytics?.totalCustomerSignIns ?? 0;
-    final totalCommission =
-        analytics?.totalPlatformCommission ?? 0;
+    final totalCommission = analytics?.totalPlatformCommission ?? 0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -236,7 +235,7 @@ class _AdminStatsGrid extends StatelessWidget {
             : constraints.maxWidth >= 700
                 ? 2
                 : 1;
-        final spacing = 12.0;
+        const spacing = 12.0;
         final double cardWidth = crossAxisCount == 1
             ? constraints.maxWidth
             : (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
@@ -447,8 +446,7 @@ class _AdminOrdersTab extends ConsumerWidget {
               const SizedBox(height: 12),
               TextField(
                 controller: trackingController,
-                decoration:
-                    const InputDecoration(labelText: 'Tracking number'),
+                decoration: const InputDecoration(labelText: 'Tracking number'),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -657,7 +655,8 @@ class _AdminOrdersTab extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Text(
                       'Customer: ${order.customerName}${order.customerEmail.isNotEmpty ? ' • ${order.customerEmail}' : ''}',
-                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.black54),
                     ),
                   ],
                 ),
@@ -706,7 +705,8 @@ class _AdminOrdersTab extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                if (order.trackingNumber.isNotEmpty || order.trackingNote.isNotEmpty)
+                if (order.trackingNumber.isNotEmpty ||
+                    order.trackingNote.isNotEmpty)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
@@ -734,7 +734,8 @@ class _AdminOrdersTab extends ConsumerWidget {
                       ],
                     ),
                   ),
-                if (order.trackingNumber.isNotEmpty || order.trackingNote.isNotEmpty)
+                if (order.trackingNumber.isNotEmpty ||
+                    order.trackingNote.isNotEmpty)
                   const SizedBox(height: 10),
                 if (order.isManualBankTransfer && !order.isPaid) ...[
                   Container(
@@ -774,13 +775,14 @@ class _AdminOrdersTab extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         'Vendor earnings: ${formatNaira(order.vendorEarnings)}',
-                        style:
-                            const TextStyle(fontSize: 11, color: Colors.black54),
+                        style: const TextStyle(
+                            fontSize: 11, color: Colors.black54),
                       ),
                     ),
                     Text(
                       'Commission: ${formatNaira(order.commissionAmount)}',
-                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.black54),
                     ),
                   ],
                 ),
@@ -1278,4 +1280,3 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
-

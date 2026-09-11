@@ -70,9 +70,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           .where((bank) => (bank['code'] ?? '').isNotEmpty)
           .toList()
         ..sort(
-          (a, b) => a['name']
-              .toString()
-              .compareTo(b['name'].toString()),
+          (a, b) => a['name'].toString().compareTo(b['name'].toString()),
         );
     } catch (error) {
       if (!mounted) return;
@@ -82,8 +80,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final storeNameController = TextEditingController();
     final ownerNameController =
         TextEditingController(text: auth.user?.name ?? '');
-    final emailController =
-        TextEditingController(text: auth.user?.email ?? '');
+    final emailController = TextEditingController(text: auth.user?.email ?? '');
     final phoneController = TextEditingController(text: account.phone);
     final businessAddressController = TextEditingController();
     final descController = TextEditingController();
@@ -189,8 +186,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                         child: Text('Home Accessories')),
                     DropdownMenuItem(
                         value: 'Footwear', child: Text('Footwear')),
-                    DropdownMenuItem(
-                        value: 'Jewelry', child: Text('Jewelry')),
+                    DropdownMenuItem(value: 'Jewelry', child: Text('Jewelry')),
                     DropdownMenuItem(value: 'Bags', child: Text('Bags')),
                   ],
                   onChanged: (val) {
@@ -203,7 +199,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: 'Brand Profile & Craftsmanship Story',
-                    hintText: 'Tell us about your materials, origin, and offerings.',
+                    hintText:
+                        'Tell us about your materials, origin, and offerings.',
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -313,9 +310,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                                 paystackStatus = 'Verifying';
                               });
                               try {
-                                final verifyResponse = await ref
-                                    .read(apiClientProvider)
-                                    .post(
+                                final verifyResponse =
+                                    await ref.read(apiClientProvider).post(
                                   ApiEndpoints.paystackVerifyAccount,
                                   data: {
                                     'bankCode': selectedBankCode,
@@ -345,8 +341,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                               }
                             },
                       icon: const Icon(Icons.verified_outlined),
-                      label:
-                          Text(isVerifyingAccount ? 'Verifying' : 'Verify'),
+                      label: Text(isVerifyingAccount ? 'Verifying' : 'Verify'),
                     ),
                   ],
                 ),
@@ -502,8 +497,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   isDense: true,
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon:
-                              const Icon(Icons.clear, size: 16, color: Colors.grey),
+                          icon: const Icon(Icons.clear,
+                              size: 16, color: Colors.grey),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: () {
@@ -608,8 +603,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               color: Colors.white,
               child: SafeArea(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   child: Column(
                     children: [
                       Row(
@@ -760,15 +755,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                                 showDialog(
                                   context: context,
                                   builder: (context) => AlertDialog(
-                                    title: const Text(
-                                        'Application Under Review'),
+                                    title:
+                                        const Text('Application Under Review'),
                                     content: const Text(
                                       'Your vendor application has been submitted and is currently under review by our admin team.',
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context),
+                                        onPressed: () => Navigator.pop(context),
                                         child: const Text('OK'),
                                       ),
                                     ],
@@ -781,32 +775,26 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                                 const PopupMenuItem(
                                   value: '/admin',
                                   child: ListTile(
-                                    leading:
-                                        Icon(Icons.verified_user_outlined),
+                                    leading: Icon(Icons.verified_user_outlined),
                                     title: Text('Admin Console'),
-                                    subtitle:
-                                        Text('Marketplace oversight'),
+                                    subtitle: Text('Marketplace oversight'),
                                   ),
                                 ),
                                 const PopupMenuItem(
                                   value: '/vendor',
                                   child: ListTile(
-                                    leading:
-                                        Icon(Icons.storefront_outlined),
+                                    leading: Icon(Icons.storefront_outlined),
                                     title: Text('Vendor Studio'),
-                                    subtitle:
-                                        Text('Listings & fulfilment'),
+                                    subtitle: Text('Listings & fulfilment'),
                                   ),
                                 ),
                               ] else if (isVendor) ...[
                                 const PopupMenuItem(
                                   value: '/vendor',
                                   child: ListTile(
-                                    leading:
-                                        Icon(Icons.storefront_outlined),
+                                    leading: Icon(Icons.storefront_outlined),
                                     title: Text('Vendor Studio'),
-                                    subtitle:
-                                        Text('Listings & fulfilment'),
+                                    subtitle: Text('Listings & fulfilment'),
                                   ),
                                 ),
                               ] else if (isPendingVendor) ...[
@@ -830,8 +818,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                                       color: QuiverLuxTheme.forest,
                                     ),
                                     title: Text('Become a Vendor'),
-                                    subtitle: Text(
-                                        'Apply to sell your luxury items'),
+                                    subtitle:
+                                        Text('Apply to sell your luxury items'),
                                   ),
                                 ),
                               ],
@@ -859,11 +847,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 color: const Color(0xFF1B3B2B),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Wrap(
+                child: const Wrap(
                   spacing: 12,
                   runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
-                  children: const [
+                  children: [
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -944,7 +932,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                     : productsAsync.hasError
                         ? Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
                               child: Text(
                                 productsAsync.error.toString(),
                                 style: const TextStyle(
@@ -953,157 +942,171 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                               ),
                             ),
                           )
-                    : lightningProducts.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No active lightning deals.',
-                              style: TextStyle(
-                                  color: Colors.grey, fontSize: 12),
-                            ),
-                          )
-                        : ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            itemCount: lightningProducts.length,
-                            itemBuilder: (context, index) {
-                              final rawItem = lightningProducts[index];
-                              final productModel = _toProductModel(rawItem);
-                              final originalPrice = productModel.price;
-                              final dealPrice = productModel.discountPrice ?? productModel.price;
-
-                              return Container(
-                                width: 150,
-                                margin:
-                                    const EdgeInsets.symmetric(horizontal: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
+                        : lightningProducts.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No active lightning deals.',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    InkWell(
-                                      onTap: () => context.push(
-                                          '/product-detail',
-                                          extra: productModel),
-                                      child: ClipRRect(
-                                        borderRadius:
-                                            const BorderRadius.vertical(
-                                                top: Radius.circular(8)),
-                                        child: Container(
-                                          height: 135,
-                                          width: double.infinity,
-                                          color: Colors.grey.shade200,
-                                          child: ProductImage(
-                                            imageUrl: productModel.imageUrl,
-                                            imageBytes:
-                                                productModel.imageBytes,
-                                          ),
-                                        ),
-                                      ),
+                              )
+                            : ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                itemCount: lightningProducts.length,
+                                itemBuilder: (context, index) {
+                                  final rawItem = lightningProducts[index];
+                                  final productModel = _toProductModel(rawItem);
+                                  final originalPrice = productModel.price;
+                                  final dealPrice =
+                                      productModel.discountPrice ??
+                                          productModel.price;
+
+                                  return Container(
+                                    width: 150,
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Text(
-                                                formatNaira(dealPrice),
-                                                style: const TextStyle(
-                                                  color: Colors.redAccent,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Text(
-                                                  formatNaira(originalPrice),
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade500,
-                                                    fontSize: 9,
-                                                    decoration: TextDecoration
-                                                        .lineThrough,
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.star,
-                                                  size: 10,
-                                                  color: Colors.amber),
-                                              const Icon(Icons.star,
-                                                  size: 10,
-                                                  color: Colors.amber),
-                                              const Icon(Icons.star,
-                                                  size: 10,
-                                                  color: Colors.amber),
-                                              const Icon(Icons.star,
-                                                  size: 10,
-                                                  color: Colors.amber),
-                                              const Icon(Icons.star_half,
-                                                  size: 10,
-                                                  color: Colors.amber),
-                                              const SizedBox(width: 2),
-                                              Text(
-                                                  (customerRatings[
-                                                              productModel
-                                                                  .id] ??
-                                                          productModel.rating)
-                                                      .toStringAsFixed(1),
-                                                  style: const TextStyle(
-                                                      fontSize: 9,
-                                                      color: Colors.grey)),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          SizedBox(
-                                            width: double.infinity,
-                                            height: 26,
-                                            child: ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    QuiverLuxTheme.matteBlack,
-                                                padding: EdgeInsets.zero,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                              ),
-                                              onPressed: () {
-                                                ref
-                                                    .read(cartProvider.notifier)
-                                                    .addToCart(productModel);
-                                                _showFeedback(
-                                                    '${productModel.title} added to bag');
-                                              },
-                                              child: const Text(
-                                                'ADD TO BAG',
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 9,
-                                                    fontWeight:
-                                                        FontWeight.bold),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        InkWell(
+                                          onTap: () => context.push(
+                                              '/product-detail',
+                                              extra: productModel),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                const BorderRadius.vertical(
+                                                    top: Radius.circular(8)),
+                                            child: Container(
+                                              height: 135,
+                                              width: double.infinity,
+                                              color: Colors.grey.shade200,
+                                              child: ProductImage(
+                                                imageUrl: productModel.imageUrl,
+                                                imageBytes:
+                                                    productModel.imageBytes,
                                               ),
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    formatNaira(dealPrice),
+                                                    style: const TextStyle(
+                                                      color: Colors.redAccent,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      formatNaira(
+                                                          originalPrice),
+                                                      style: TextStyle(
+                                                        color: Colors
+                                                            .grey.shade500,
+                                                        fontSize: 9,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .lineThrough,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  const Icon(Icons.star,
+                                                      size: 10,
+                                                      color: Colors.amber),
+                                                  const Icon(Icons.star,
+                                                      size: 10,
+                                                      color: Colors.amber),
+                                                  const Icon(Icons.star,
+                                                      size: 10,
+                                                      color: Colors.amber),
+                                                  const Icon(Icons.star,
+                                                      size: 10,
+                                                      color: Colors.amber),
+                                                  const Icon(Icons.star_half,
+                                                      size: 10,
+                                                      color: Colors.amber),
+                                                  const SizedBox(width: 2),
+                                                  Text(
+                                                      (customerRatings[
+                                                                  productModel
+                                                                      .id] ??
+                                                              productModel
+                                                                  .rating)
+                                                          .toStringAsFixed(1),
+                                                      style: const TextStyle(
+                                                          fontSize: 9,
+                                                          color: Colors.grey)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              SizedBox(
+                                                width: double.infinity,
+                                                height: 26,
+                                                child: ElevatedButton(
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        QuiverLuxTheme
+                                                            .matteBlack,
+                                                    padding: EdgeInsets.zero,
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
+                                                    ),
+                                                  ),
+                                                  onPressed: () {
+                                                    ref
+                                                        .read(cartProvider
+                                                            .notifier)
+                                                        .addToCart(
+                                                            productModel);
+                                                    _showFeedback(
+                                                        '${productModel.title} added to bag');
+                                                  },
+                                                  child: const Text(
+                                                    'ADD TO BAG',
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                                  );
+                                },
+                              ),
               ),
             ],
             const SizedBox(height: 16),
