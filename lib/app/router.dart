@@ -95,7 +95,8 @@ final GoRouter appRouter = GoRouter(
         if (product is! ProductModel) {
           return const _VendorGuard(child: AddEditProductScreen());
         }
-        return _VendorGuard(child: AddEditProductScreen(productToEdit: product));
+        return _VendorGuard(
+            child: AddEditProductScreen(productToEdit: product));
       },
     ),
     GoRoute(
@@ -141,15 +142,58 @@ class _MissingProductRedirectState extends State<_MissingProductRedirect> {
   }
 }
 
-class _AdminGuard extends StatelessWidget {
+class _AdminGuard extends ConsumerWidget {
   final Widget child;
 
   const _AdminGuard({required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    // Temporary admin portal bypass while admin authentication is being wired.
-    return child;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final user = auth.user;
+
+    if (user?.role == 'admin') {
+      return child;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Admin Access'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline, size: 56),
+              const SizedBox(height: 16),
+              Text(
+                user == null
+                    ? 'Sign in as an administrator to continue.'
+                    : 'This account does not have administrator access.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              if (user == null)
+                ElevatedButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Sign in'),
+                )
+              else
+                ElevatedButton(
+                  onPressed: () => context.go('/'),
+                  child: const Text('Return to storefront'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -209,7 +253,8 @@ class _VendorGuard extends ConsumerWidget {
                       ? Icons.hourglass_top_outlined
                       : Icons.storefront_outlined,
                   size: 64,
-                  color: isPending ? Colors.amber.shade800 : QuiverLuxTheme.forest,
+                  color:
+                      isPending ? Colors.amber.shade800 : QuiverLuxTheme.forest,
                 ),
               ),
               const SizedBox(height: 20),
@@ -247,7 +292,9 @@ class _VendorGuard extends ConsumerWidget {
                     ),
                     onPressed: () => context.push('/profile'),
                     child: Text(
-                      isPending ? 'Check Application Status' : 'Apply to Become a Vendor',
+                      isPending
+                          ? 'Check Application Status'
+                          : 'Apply to Become a Vendor',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),

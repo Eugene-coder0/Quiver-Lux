@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/sync/portal_sync_provider.dart';
 import '../../../core/formatters/currency_formatter.dart';
+import '../../../core/widgets/load_error_banner.dart';
 import '../../../core/widgets/product_image.dart';
 import '../../customer/models/order_model.dart';
 import '../../customer/models/product_model.dart';
@@ -32,13 +34,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Future<void> _refreshAdminData() async {
-    ref.invalidate(adminUsersProvider);
-    ref.invalidate(adminAnalyticsProvider);
-    await Future.wait([
-      ref.read(orderProvider.notifier).refresh(),
-      ref.read(vendorApplicationsProvider.notifier).load(),
-      ref.read(vendorProductsProvider.notifier).load(),
-    ]);
+    await ref.read(portalSyncProvider).refresh();
   }
 
   @override
@@ -46,6 +42,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     final applications = ref.watch(vendorApplicationsProvider);
     final allProducts = ref.watch(vendorProductsProvider);
     final orders = ref.watch(orderProvider);
+    final productsError = ref.watch(vendorProductsLoadErrorProvider);
+    final ordersError = ref.watch(orderLoadErrorProvider);
     final analytics = ref.watch(adminAnalyticsProvider).valueOrNull;
     final usersAsync = ref.watch(adminUsersProvider);
 
@@ -174,6 +172,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         ),
         body: Column(
           children: [
+            if (productsError != null)
+              LoadErrorBanner(
+                message: productsError,
+                onRetry: () => ref.read(vendorProductsProvider.notifier).load(),
+              ),
+            if (ordersError != null)
+              LoadErrorBanner(
+                message: ordersError,
+                onRetry: () => ref.read(orderProvider.notifier).refresh(),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: _AdminStatsGrid(

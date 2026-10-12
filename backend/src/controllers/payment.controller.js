@@ -49,7 +49,7 @@ export const initializePayment = async (req, res, next) => {
         userId: req.user.id,
         splits,
       },
-      callbackUrl: typeof callbackUrl === 'string' && callbackUrl.trim().isNotEmpty
+      callbackUrl: typeof callbackUrl === 'string' && callbackUrl.trim().length > 0
         ? callbackUrl.trim()
         : undefined,
     });
@@ -86,12 +86,14 @@ export const initializePayment = async (req, res, next) => {
 
 export const handleWebhook = async (req, res, next) => {
   try {
+    const signature = req.headers['x-paystack-signature'];
+    const payloadToHash = req.rawBody || JSON.stringify(req.body);
     const hash = crypto
       .createHmac('sha512', env.PAYSTACK_SECRET_KEY)
-      .update(JSON.stringify(req.body))
+      .update(payloadToHash)
       .digest('hex');
 
-    if (hash !== req.headers['x-paystack-signature']) {
+    if (!signature || hash !== signature) {
       return res.status(400).send('Invalid signature');
     }
 
@@ -111,8 +113,33 @@ export const handleWebhook = async (req, res, next) => {
 
 export const verifyPaymentReference = async (reference) => {
   const payload = await verifyPaymentTransaction(reference);
-  if (payload.status === 'success') {
+  if (payload && String(payload.status).toLowerCase() === 'success') {
     await finalizeSuccessfulPayment(reference, payload);
   }
   return payload;
+};
+
+export const verifyPayment = async (req, res, next) => {
+  try {
+    const reference = req.params.reference || req.query.reference;
+    if (!reference) throw new ApiError(400, 'Payment reference is required');
+
+    const payment = await prisma.payment.findFirst({
+      where: {
+        paystackReference: String(reference),
+        order: { userId: req.user.id },
+      },
+    });
+    if (!payment) throw new ApiError(404, 'Payment not found for this account');
+
+    const payload = await verifyPaymentReference(reference);
+    const status = String(payload?.status || '').toLowerCase();
+    return ApiResponse.success(res, 200, 'Payment verification completed', {
+      status: status === 'success' ? 'success' : 'failed',
+      reference: String(reference),
+      data: payload,
+    });
+  } catch (error) {
+    next(error);
+  }
 };

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
+import '../../../core/sync/portal_sync_provider.dart';
 import '../../../core/formatters/currency_formatter.dart';
+import '../../../core/widgets/load_error_banner.dart';
 import '../../customer/models/order_model.dart';
 import '../../customer/models/product_model.dart';
 import '../../customer/providers/order_provider.dart';
@@ -25,8 +27,7 @@ class _VendorDashboardScreenState extends ConsumerState<VendorDashboardScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(vendorProductsProvider.notifier).load();
-      ref.read(orderProvider.notifier).refresh();
+      ref.read(portalSyncProvider).refresh();
     });
   }
 
@@ -40,6 +41,8 @@ class _VendorDashboardScreenState extends ConsumerState<VendorDashboardScreen>
   Widget build(BuildContext context) {
     final products = ref.watch(vendorProductsProvider);
     final orders = ref.watch(orderProvider);
+    final productsError = ref.watch(vendorProductsLoadErrorProvider);
+    final ordersError = ref.watch(orderLoadErrorProvider);
     final analytics = ref.watch(vendorAnalyticsProvider).valueOrNull;
     final double totalRevenue = analytics?.totalEarnings ?? 0.0;
 
@@ -108,6 +111,16 @@ class _VendorDashboardScreenState extends ConsumerState<VendorDashboardScreen>
       ),
       body: Column(
         children: [
+          if (productsError != null)
+            LoadErrorBanner(
+              message: productsError,
+              onRetry: () => ref.read(vendorProductsProvider.notifier).load(),
+            ),
+          if (ordersError != null)
+            LoadErrorBanner(
+              message: ordersError,
+              onRetry: () => ref.read(orderProvider.notifier).refresh(),
+            ),
           // Stat Cards
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -125,71 +138,71 @@ class _VendorDashboardScreenState extends ConsumerState<VendorDashboardScreen>
                     SizedBox(
                       width: cardWidth,
                       child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: QuiverLuxTheme.softGray),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: QuiverLuxTheme.softGray),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Store Revenue',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 11)),
-                            Text('₦',
-                                style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold)),
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Store Revenue',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 11)),
+                                Text('₦',
+                                    style: TextStyle(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              formatNaira(totalRevenue),
+                              style: const TextStyle(
+                                  color: QuiverLuxTheme.matteBlack,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          formatNaira(totalRevenue),
-                          style: const TextStyle(
-                              color: QuiverLuxTheme.matteBlack,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
                       ),
                     ),
                     SizedBox(
                       width: cardWidth,
                       child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: QuiverLuxTheme.softGray),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: QuiverLuxTheme.softGray),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Sold Units',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 11)),
-                            Icon(Icons.shopping_bag_outlined,
-                                color: QuiverLuxTheme.forest, size: 16),
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Sold Units',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 11)),
+                                Icon(Icons.shopping_bag_outlined,
+                                    color: QuiverLuxTheme.forest, size: 16),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${analytics?.totalSoldUnits ?? 0}',
+                              style: const TextStyle(
+                                  color: QuiverLuxTheme.matteBlack,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${analytics?.totalSoldUnits ?? 0}',
-                          style: const TextStyle(
-                              color: QuiverLuxTheme.matteBlack,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
                       ),
                     ),
                   ],
@@ -437,9 +450,11 @@ class _VendorDashboardScreenState extends ConsumerState<VendorDashboardScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   OutlinedButton.icon(
-                                    onPressed: () => _confirmManualPayment(order),
+                                    onPressed: () =>
+                                        _confirmManualPayment(order),
                                     icon: const Icon(Icons.verified, size: 16),
-                                    label: const Text('Confirm payment received'),
+                                    label:
+                                        const Text('Confirm payment received'),
                                   ),
                                 ],
                                 const SizedBox(height: 10),

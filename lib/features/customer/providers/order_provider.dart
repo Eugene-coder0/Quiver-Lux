@@ -5,6 +5,8 @@ import '../../../providers/api_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/order_model.dart';
 
+final orderLoadErrorProvider = StateProvider<String?>((ref) => null);
+
 class OrderNotifier extends StateNotifier<List<OrderModel>> {
   OrderNotifier(this.ref) : super(const []) {
     load();
@@ -16,6 +18,7 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
     final user = ref.read(authProvider).user;
     if (user == null) {
       state = const [];
+      ref.read(orderLoadErrorProvider.notifier).state = null;
       return;
     }
 
@@ -30,8 +33,10 @@ class OrderNotifier extends StateNotifier<List<OrderModel>> {
           .map((item) => OrderModel.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList();
       state = orders;
-    } catch (_) {
+      ref.read(orderLoadErrorProvider.notifier).state = null;
+    } catch (error) {
       state = const [];
+      ref.read(orderLoadErrorProvider.notifier).state = error.toString();
     }
   }
 

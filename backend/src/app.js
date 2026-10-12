@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -19,7 +20,9 @@ import { errorHandler } from './middleware/error.middleware.js';
 const app = express();
 
 // Security Headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 // CORS Configuration
 app.use(cors({
@@ -37,7 +40,14 @@ const limiter = rateLimit({
 // Apply rate limiting AFTER defining limiter
 app.use('/api', limiter);
 
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  },
+}));
+
+// Serve static uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
 // Root Healthcheck
 app.get('/', (req, res) => {

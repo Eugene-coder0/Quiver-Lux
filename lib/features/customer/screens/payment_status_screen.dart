@@ -30,7 +30,14 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen> {
   }
 
   Future<void> _verifyPayment() async {
-    final reference = (widget.reference ?? '').trim();
+    var reference = (widget.reference ?? '').trim();
+    if (reference.isEmpty) {
+      reference = (Uri.base.queryParameters['reference'] ??
+              Uri.base.queryParameters['trxref'] ??
+              '')
+          .trim();
+    }
+
     if (reference.isEmpty) {
       setState(() {
         _isLoading = false;
@@ -133,7 +140,18 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen> {
                   ),
                 ],
                 const SizedBox(height: 28),
-                if (!_isLoading)
+                if (!_isLoading) ...[
+                  if (!_isSuccess && _reference.isNotEmpty) ...[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      onPressed: _verifyPayment,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('RETRY VERIFICATION'),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: QuiverLuxTheme.matteBlack,
@@ -146,6 +164,7 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen> {
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
+                ],
                 const SizedBox(height: 8),
                 if (!_isLoading)
                   TextButton(

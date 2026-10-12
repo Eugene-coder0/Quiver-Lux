@@ -1,10 +1,15 @@
 import { prisma } from '../lib/prisma.js';
 import {
-  createTransactionSplit,
   initializePayment,
   verifyPaymentTransaction,
 } from '../services/paystack.service.js';
-import { finalizeSuccessfulPayment, markPaymentFailed } from '../services/order_payment.service.js';
+import {
+  finalizeSuccessfulPayment,
+  markPaymentFailed,
+  reserveStockForItems,
+  resolvePaystackRouting,
+  restoreStockForOrderId,
+} from '../services/order_payment.service.js';
 import { isMockPaystackSubaccountCode } from '../services/vendor_paystack.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { ApiError } from '../utils/apiError.js';
@@ -49,6 +54,8 @@ const FULFILLMENT_STATUSES = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', '
 const PAYMENT_STATUSES = ['PENDING', 'SUCCESS', 'FAILED'];
 const PAYSTACK_CHANNELS = ['card', 'bank', 'bank_transfer', 'ussd'];
 const PAYMENT_METHODS = [...PAYSTACK_CHANNELS, 'manual_bank_transfer'];
+const VAT_RATE = 0.075;
+const DELIVERY_FEE = 5000;
 const VENDOR_ALLOWED_TRANSITIONS = {
   PENDING: ['PROCESSING', 'CANCELLED'],
   PROCESSING: ['SHIPPED', 'CANCELLED'],
@@ -181,13 +188,6 @@ const buildLineItemsFromPayload = async (items) => {
       throw new ApiError(400, `${product.name} does not have enough stock for this order`);
     }
 
-    if (!product.vendor?.paystackSetupComplete) {
-      throw new ApiError(
-        400,
-        `${product.vendor?.brandName || product.vendor?.storeName || 'A vendor'} has not completed Paystack setup`
-      );
-    }
-
     const liveDiscount =
       product.isLimitedOffer &&
       product.discountPrice != null &&
@@ -258,6 +258,9 @@ export const checkout = async (req, res, next) => {
       itemsByVendor.set(vendorId, group);
     }
 
+    const taxAmount = grandTotal * VAT_RATE;
+    const shippingAmount = grandTotal > 0 ? DELIVERY_FEE : 0;
+    const orderTotal = grandTotal + taxAmount + shippingAmount;
     const orderNumber = `QL-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newOrder = await prisma.$transaction(async (tx) => {
@@ -265,7 +268,7 @@ export const checkout = async (req, res, next) => {
         data: {
           orderNumber,
           userId: req.user.id,
-          totalAmount: grandTotal,
+          totalAmount: orderTotal,
           shippingAddressSnapshot: shippingAddress,
           paymentStatus: 'PENDING',
         },
@@ -301,6 +304,14 @@ export const checkout = async (req, res, next) => {
         }
       }
 
+      await reserveStockForItems(
+        tx,
+        lineItems.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        }))
+      );
+
       return mainOrder;
     });
 
@@ -327,7 +338,7 @@ export const checkout = async (req, res, next) => {
         data: {
           orderId: newOrder.id,
           paystackReference: `MBT-${orderNumber}`,
-          amount: grandTotal,
+          amount: orderTotal,
           status: 'PENDING',
           paystackChannel: 'manual_bank_transfer',
           rawResponse: {
@@ -340,7 +351,7 @@ export const checkout = async (req, res, next) => {
       return ApiResponse.success(res, 201, 'Order created. Awaiting bank transfer confirmation', {
         orderId: newOrder.id,
         orderNumber,
-        totalAmount: grandTotal,
+        totalAmount: orderTotal,
         reference: `MBT-${orderNumber}`,
         paymentStatus: 'pending',
         paymentMethod: 'manual_bank_transfer',
@@ -354,32 +365,43 @@ export const checkout = async (req, res, next) => {
       });
     }
 
-    const amountInKobo = Math.round(grandTotal * 100);
-    if (splits.some((splitItem) => !splitItem.subaccountCode)) {
-      throw new ApiError(
-        400,
-        'One or more vendors have not completed the Paystack subaccount setup required for checkout'
+    const amountInKobo = Math.round(orderTotal * 100);
+    const canUseRealSplitRouting =
+      splits.length > 0 &&
+      splits.every(
+        (splitItem) =>
+          splitItem.subaccountCode &&
+          !isMockPaystackSubaccountCode(splitItem.subaccountCode)
       );
-    }
-    const canUseRealSplitRouting = splits.every(
-      (splitItem) => !isMockPaystackSubaccountCode(splitItem.subaccountCode)
-    );
+
     let splitCode;
-    if (!canUseRealSplitRouting) {
-      splitCode = undefined;
-    } else if (splits.length === 1 && splits[0].subaccountCode) {
-      splitCode = undefined;
-    } else {
-      const split = await createTransactionSplit({
-        name: `Quiver Lux ${orderNumber}`,
-        currency: 'NGN',
-        subaccounts: splits.map((splitItem) => ({
-          subaccount: splitItem.subaccountCode,
-          share: Math.round(splitItem.vendorEarnings * 100),
-        })),
-      });
-      splitCode = split.split_code;
+    let singleSubaccount;
+    let transactionCharge;
+
+    if (canUseRealSplitRouting) {
+      if (splits.length === 1) {
+        singleSubaccount = splits[0].subaccountCode;
+        const commissionKobo = Math.round(
+          splits[0].subtotal * (splits[0].commissionRate / 100) * 100
+        );
+        transactionCharge = Math.max(0, commissionKobo);
+      } else {
+        try {
+          const split = await createTransactionSplit({
+            name: `Quiver Lux ${orderNumber}`,
+            currency: 'NGN',
+            subaccounts: splits.map((splitItem) => ({
+              subaccount: splitItem.subaccountCode,
+              share: Math.round(splitItem.vendorEarnings * 100),
+            })),
+          });
+          splitCode = split?.split_code;
+        } catch (splitError) {
+          splitCode = undefined;
+        }
+      }
     }
+
     let paystackData;
     try {
       paystackData = await initializePayment({
@@ -392,13 +414,13 @@ export const checkout = async (req, res, next) => {
           splits,
           paymentChannel: paymentMethod,
         },
-        callbackUrl: typeof callbackUrl === 'string' && callbackUrl.trim().isNotEmpty
+        callbackUrl: typeof callbackUrl === 'string' && callbackUrl.trim().length > 0
           ? callbackUrl.trim()
           : undefined,
         channels: PAYSTACK_CHANNELS.includes(paymentMethod) ? [paymentMethod] : undefined,
         splitCode,
-        subaccount:
-          canUseRealSplitRouting && splits.length === 1 ? splits[0].subaccountCode : undefined,
+        subaccount: singleSubaccount,
+        transactionCharge,
       });
     } catch (error) {
       await prisma.order.delete({
@@ -411,7 +433,7 @@ export const checkout = async (req, res, next) => {
       data: {
         orderId: newOrder.id,
         paystackReference: orderNumber,
-        amount: grandTotal,
+        amount: orderTotal,
         status: 'PENDING',
         paystackChannel: paymentMethod,
         rawResponse: {
@@ -424,7 +446,7 @@ export const checkout = async (req, res, next) => {
     return ApiResponse.success(res, 201, 'Order created and payment initialized', {
       orderId: newOrder.id,
       orderNumber,
-      totalAmount: grandTotal,
+      totalAmount: orderTotal,
       paymentUrl: paystackData.authorization_url,
       accessCode: paystackData.access_code,
       reference: orderNumber,
@@ -443,13 +465,29 @@ export const verifyPayment = async (req, res, next) => {
     const { reference } = req.query;
     if (!reference) throw new ApiError(400, 'Payment reference is required');
 
+    const payment = await prisma.payment.findFirst({
+      where: {
+        paystackReference: String(reference),
+        order: { userId: req.user.id },
+      },
+    });
+    if (!payment) throw new ApiError(404, 'Payment not found for this account');
+
     const paystackVerification = await verifyPaymentTransaction(reference);
     const paymentStatus = String(paystackVerification.status || '').toLowerCase();
 
     if (paymentStatus === 'success') {
-      await finalizeSuccessfulPayment(reference, paystackVerification);
+      try {
+        await finalizeSuccessfulPayment(reference, paystackVerification);
+      } catch (finalizeErr) {
+        // If payment was already finalized (e.g. via webhook), proceed gracefully
+      }
     } else {
-      await markPaymentFailed(reference, paystackVerification);
+      try {
+        await markPaymentFailed(reference, paystackVerification);
+      } catch (failErr) {
+        // Proceed gracefully
+      }
     }
 
     const orders = await prisma.vendorOrder.findMany({
@@ -471,7 +509,7 @@ export const verifyPayment = async (req, res, next) => {
       status: paymentStatus === 'success' ? 'success' : 'failed',
       reference: String(reference),
       paymentStatus: paymentStatus === 'success' ? 'success' : 'failed',
-      lifecycleStatus: leadOrder?.lifecycleStatus ?? 'payment_pending',
+      lifecycleStatus: leadOrder?.lifecycleStatus ?? (paymentStatus === 'success' ? 'paid' : 'payment_pending'),
       orders: serializedOrders,
     });
   } catch (error) {
@@ -522,7 +560,7 @@ export const getPortalOrders = async (req, res, next) => {
             order: {
               payment: {
                 is: {
-                  paystackChannel: 'bank_transfer',
+                  paystackChannel: 'manual_bank_transfer',
                 },
               },
             },

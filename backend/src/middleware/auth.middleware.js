@@ -37,15 +37,17 @@ export const authenticate = async (req, res, next) => {
 };
 
 export const authenticateAdminPortal = async (req, res, next) => {
-  if (
-    process.env.NODE_ENV === 'development' &&
-    !req.headers.authorization
-  ) {
-    req.user = { id: 'development-admin', role: 'ADMIN' };
-    return next();
-  }
+  return authenticate(req, res, (error) => {
+    if (error) {
+      return next(error);
+    }
 
-  return authenticate(req, res, next);
+    if (req.user?.role !== 'ADMIN') {
+      return next(new ApiError(403, 'Administrator access required'));
+    }
+
+    return next();
+  });
 };
 
 export const optionalAuthenticate = async (req, res, next) => {

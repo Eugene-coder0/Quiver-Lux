@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/formatters/currency_formatter.dart';
+import '../../../core/widgets/load_error_banner.dart';
 import '../../../core/widgets/product_image.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
@@ -15,6 +16,7 @@ class OrderTrackingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(orderProvider);
+    final loadError = ref.watch(orderLoadErrorProvider);
     final pendingPaymentOrders = orders.where((order) => order.isPendingPayment).toList();
     final activeOrders = orders.where((order) => !order.isPendingPayment).toList();
 
@@ -42,8 +44,22 @@ class OrderTrackingScreen extends ConsumerWidget {
           },
         ),
       ),
-      body: orders.isEmpty
-          ? const Center(child: Text('No order activity yet.'))
+      body: Column(
+        children: [
+          if (loadError != null)
+            LoadErrorBanner(
+              message: loadError,
+              onRetry: () => ref.read(orderProvider.notifier).refresh(),
+            ),
+          Expanded(
+            child: orders.isEmpty
+          ? Center(
+              child: Text(
+                loadError == null
+                    ? 'No order activity yet.'
+                    : 'Orders could not be loaded.',
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -66,6 +82,9 @@ class OrderTrackingScreen extends ConsumerWidget {
                 ],
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

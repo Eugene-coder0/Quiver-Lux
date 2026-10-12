@@ -4,10 +4,10 @@ import { ApiError } from '../utils/apiError.js';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
-const paystackHeaders = {
+const getPaystackHeaders = () => ({
   Authorization: `Bearer ${env.PAYSTACK_SECRET_KEY}`,
   'Content-Type': 'application/json',
-};
+});
 
 export const initializePayment = async ({
   email,
@@ -21,45 +21,83 @@ export const initializePayment = async ({
   transactionCharge,
   bearer,
 }) => {
+  if (env.ALLOW_TEST_PAYSTACK_BYPASS && env.PAYSTACK_SECRET_KEY === 'sk_test_placeholder') {
+    const redirectUrl = callbackUrl
+      ? `${callbackUrl}${callbackUrl.includes('?') ? '&' : '?'}reference=${encodeURIComponent(reference)}&trxref=${encodeURIComponent(reference)}`
+      : `/payment-status?reference=${encodeURIComponent(reference)}&trxref=${encodeURIComponent(reference)}`;
+    return {
+      authorization_url: redirectUrl,
+      access_code: `mock_access_${Date.now()}`,
+      reference,
+    };
+  }
+
+  const payload = {
+    email,
+    amount: amountInKobo,
+    reference,
+    metadata,
+    ...(callbackUrl ? { callback_url: callbackUrl } : {}),
+    ...(Array.isArray(channels) && channels.length > 0 ? { channels } : {}),
+    ...(splitCode ? { split_code: splitCode } : {}),
+    ...(subaccount ? { subaccount } : {}),
+    ...(transactionCharge !== undefined ? { transaction_charge: transactionCharge } : {}),
+    ...(bearer ? { bearer } : {}),
+  };
+
   try {
     const response = await axios.post(
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      payload,
       {
-        email,
-        amount: amountInKobo,
-        reference,
-        metadata,
-        ...(callbackUrl ? { callback_url: callbackUrl } : {}),
-        ...(Array.isArray(channels) && channels.length > 0 ? { channels } : {}),
-        ...(splitCode ? { split_code: splitCode } : {}),
-        ...(subaccount ? { subaccount } : {}),
-        ...(transactionCharge !== undefined ? { transaction_charge: transactionCharge } : {}),
-        ...(bearer ? { bearer } : {}),
-      },
-      {
-        headers: paystackHeaders,
+        headers: getPaystackHeaders(),
       }
     );
 
     return response.data.data;
   } catch (error) {
-    throw new ApiError(500, 'Paystack payment initialization failed', error.response?.data || error.message);
+    const message =
+      error.response?.data?.message ||
+      (splitCode || subaccount
+        ? 'Paystack rejected the vendor split. Confirm vendor bank setup and try again.'
+        : 'Paystack payment initialization failed');
+    throw new ApiError(500, message, error.response?.data || error.message);
   }
 };
 
 export const verifyPaymentTransaction = async (reference) => {
+  if (env.ALLOW_TEST_PAYSTACK_BYPASS && env.PAYSTACK_SECRET_KEY === 'sk_test_placeholder') {
+    return {
+      status: 'success',
+      reference,
+      amount: 0,
+      gateway_response: 'Successful (Mock Test Mode)',
+      channel: 'card',
+    };
+  }
+
   try {
     const response = await axios.get(
       `${PAYSTACK_BASE_URL}/transaction/verify/${encodeURIComponent(reference)}`,
       {
-        headers: {
-          Authorization: paystackHeaders.Authorization,
-        },
+        headers: getPaystackHeaders(),
       }
     );
 
     return response.data.data;
   } catch (error) {
+    if (
+      error.response?.data?.status === false ||
+      error.response?.status === 400 ||
+      error.response?.status === 404
+    ) {
+      return {
+        status: 'failed',
+        reference,
+        gateway_response:
+          error.response?.data?.message || 'Transaction not found or verification failed',
+      };
+    }
     throw new ApiError(500, 'Paystack verification request failed', error.response?.data || error.message);
   }
 };
@@ -74,7 +112,7 @@ export const listBanks = async ({
   try {
     const response = await axios.get(`${PAYSTACK_BASE_URL}/bank`, {
       headers: {
-        Authorization: paystackHeaders.Authorization,
+        Authorization: getPaystackHeaders().Authorization,
       },
       params: {
         country,
@@ -95,7 +133,7 @@ export const resolveAccountNumber = async ({ accountNumber, bankCode }) => {
   try {
     const response = await axios.get(`${PAYSTACK_BASE_URL}/bank/resolve`, {
       headers: {
-        Authorization: paystackHeaders.Authorization,
+        Authorization: getPaystackHeaders().Authorization,
       },
       params: {
         account_number: accountNumber,
@@ -131,7 +169,7 @@ export const createSubaccount = async ({
         ...(primaryContactEmail ? { primary_contact_email: primaryContactEmail } : {}),
       },
       {
-        headers: paystackHeaders,
+        headers: getPaystackHeaders(),
       }
     );
 
@@ -160,7 +198,7 @@ export const createTransactionSplit = async ({
         bearer_type: bearerType,
       },
       {
-        headers: paystackHeaders,
+        headers: getPaystackHeaders(),
       }
     );
 

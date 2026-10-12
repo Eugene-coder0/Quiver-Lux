@@ -1,22 +1,59 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/cart_item_model.dart';
 import '../models/product_model.dart';
 
 class CartNotifier extends StateNotifier<List<CartItemModel>> {
-  CartNotifier() : super([]);
+  static const _cartStorageKey = 'quiver_lux_cart_items';
+
+  CartNotifier() : super([]) {
+    _loadFromStorage();
+  }
+
+  Future<void> _loadFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawJson = prefs.getString(_cartStorageKey);
+      if (rawJson != null && rawJson.isNotEmpty) {
+        final decoded = jsonDecode(rawJson) as List<dynamic>;
+        state = decoded
+            .map((item) => CartItemModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {
+      // Ignore corrupted local cache
+    }
+  }
+
+  Future<void> _saveToStorage(List<CartItemModel> items) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (items.isEmpty) {
+        await prefs.remove(_cartStorageKey);
+      } else {
+        final encoded = jsonEncode(items.map((i) => i.toJson()).toList());
+        await prefs.setString(_cartStorageKey, encoded);
+      }
+    } catch (_) {
+      // Graceful fallback if storage write fails
+    }
+  }
 
   void addToCart(ProductModel product) {
     final index = state.indexWhere((item) => item.product.id == product.id);
+    List<CartItemModel> newState;
     if (index >= 0) {
       final updatedItem = state[index].copyWith(
         quantity: state[index].quantity + 1,
       );
-      final newState = [...state];
+      newState = [...state];
       newState[index] = updatedItem;
-      state = newState;
     } else {
-      state = [...state, CartItemModel(product: product, quantity: 1)];
+      newState = [...state, CartItemModel(product: product, quantity: 1)];
     }
+    state = newState;
+    _saveToStorage(newState);
   }
 
   void updateQuantity(String productId, int delta) {
@@ -32,14 +69,19 @@ class CartNotifier extends StateNotifier<List<CartItemModel>> {
       }
     }
     state = newState;
+    _saveToStorage(newState);
   }
 
   void removeFromCart(String productId) {
-    state = state.where((item) => item.product.id != productId).toList();
+    final newState =
+        state.where((item) => item.product.id != productId).toList();
+    state = newState;
+    _saveToStorage(newState);
   }
 
   void clearCart() {
     state = [];
+    _saveToStorage([]);
   }
 
   double get subtotal => state.fold(0.0, (sum, item) => sum + item.totalPrice);
@@ -56,6 +98,7 @@ final cartProvider =
     StateNotifierProvider<CartNotifier, List<CartItemModel>>((ref) {
   return CartNotifier();
 });
+
 final cartCountProvider = Provider<int>((ref) {
   final cart = ref.watch(cartProvider);
   return cart.fold(0, (sum, item) => sum + item.quantity);

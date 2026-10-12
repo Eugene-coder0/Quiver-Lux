@@ -73,6 +73,8 @@ final vendorBrandProvider = StateNotifierProvider<VendorBrandNotifier, String>(
   (ref) => VendorBrandNotifier(ref),
 );
 
+final vendorProductsLoadErrorProvider = StateProvider<String?>((ref) => null);
+
 class VendorProductsNotifier extends StateNotifier<List<ProductModel>> {
   VendorProductsNotifier(this.ref) : super(const []) {
     load();
@@ -122,8 +124,10 @@ class VendorProductsNotifier extends StateNotifier<List<ProductModel>> {
           .map((item) => ProductModel.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList();
       state = products;
-    } catch (_) {
+      ref.read(vendorProductsLoadErrorProvider.notifier).state = null;
+    } catch (error) {
       state = const [];
+      ref.read(vendorProductsLoadErrorProvider.notifier).state = error.toString();
     }
   }
 

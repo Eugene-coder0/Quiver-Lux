@@ -64,10 +64,14 @@ Start the API server:
 
 ```bash
 cd backend
+npm install
+# Copy .env.example to .env, then set DATABASE_URL for your local PostgreSQL database.
+npm run db:push
 npm start
 ```
 
 > By default, the frontend connects to `http://127.0.0.1:5000/api` during local development.
+> The example configuration uses a safe Paystack mock mode, so local checkout does not create a real charge.
 
 ---
 

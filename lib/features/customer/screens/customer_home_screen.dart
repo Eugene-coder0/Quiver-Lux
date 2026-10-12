@@ -5,6 +5,7 @@ import '../../../app/theme.dart';
 import '../../../core/api/api_endpoints.dart';
 import '../../../core/formatters/currency_formatter.dart';
 import '../../../core/widgets/product_image.dart';
+import '../../../core/sync/portal_sync_provider.dart';
 import '../../../providers/api_provider.dart';
 import '../../admin/models/admin_models.dart';
 import '../../admin/providers/admin_providers.dart';
@@ -26,6 +27,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   String selectedCategory = 'All';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(portalSyncProvider).refresh();
+    });
+  }
 
   final List<String> categories = const [
     'All',

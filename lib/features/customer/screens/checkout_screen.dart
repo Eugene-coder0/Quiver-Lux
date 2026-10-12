@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/api/api_endpoints.dart';
@@ -9,8 +10,9 @@ import '../../../core/formatters/currency_formatter.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/account_profile_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/order_provider.dart';
 
-enum CheckoutPaymentMethod { card, bank, bankTransfer, ussd }
+enum CheckoutPaymentMethod { card, bank, manualBankTransfer, ussd }
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -63,7 +65,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           'paymentChannel': switch (_paymentMethod) {
             CheckoutPaymentMethod.card => 'card',
             CheckoutPaymentMethod.bank => 'bank',
-            CheckoutPaymentMethod.bankTransfer => 'bank_transfer',
+            CheckoutPaymentMethod.manualBankTransfer => 'manual_bank_transfer',
             CheckoutPaymentMethod.ussd => 'ussd',
           },
           if (buildPaymentCallbackUrl('/payment-status') != null)
@@ -88,11 +90,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
       final data = response.data['data'] as Map<String, dynamic>? ?? const {};
 
+      if (_paymentMethod == CheckoutPaymentMethod.manualBankTransfer) {
+        await ref.read(orderProvider.notifier).refresh();
+        if (!mounted) return;
+        context.go('/bank-transfer-payment', extra: data);
+        return;
+      }
+
       final paymentUrl = data['paymentUrl']?.toString() ?? '';
       if (paymentUrl.isEmpty) {
         throw Exception('Checkout did not return a payment link.');
       }
-
       await redirectToPaymentUrl(paymentUrl);
     } catch (error) {
       if (mounted) {
@@ -216,7 +224,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                 icon: Icon(Icons.account_balance_wallet_outlined),
                               ),
                               ButtonSegment(
-                                value: CheckoutPaymentMethod.bankTransfer,
+                                value:
+                                    CheckoutPaymentMethod.manualBankTransfer,
                                 label: Text('Bank transfer'),
                                 icon: Icon(Icons.account_balance_outlined),
                               ),
@@ -238,8 +247,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               'Customer will enter card details on Paystack after redirect.',
                             CheckoutPaymentMethod.bank =>
                               'Customer will choose their bank inside the secure Paystack checkout.',
-                            CheckoutPaymentMethod.bankTransfer =>
-                              'Paystack will provide the bank transfer instructions inside checkout.',
+                            CheckoutPaymentMethod.manualBankTransfer =>
+                              'Transfer directly to the vendor account and await confirmation.',
                             CheckoutPaymentMethod.ussd =>
                               'Paystack will guide the customer through the USSD payment steps.',
                           },
@@ -261,8 +270,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                     'Secure Paystack checkout. Card details stay on Paystack, not inside the Quiver Lux app.',
                                   CheckoutPaymentMethod.bank =>
                                     'Secure Paystack checkout. Customers can authorize payment from their bank on the hosted Paystack screen.',
-                                  CheckoutPaymentMethod.bankTransfer =>
-                                    'Secure Paystack checkout. Paystack will show the transfer instructions and still return to Quiver Lux for verification.',
+                                  CheckoutPaymentMethod.manualBankTransfer =>
+                                    'Transfer instructions will be shown next. A vendor or administrator confirms receipt before fulfillment starts.',
                                   CheckoutPaymentMethod.ussd =>
                                     'Secure Paystack checkout. Paystack will prompt the customer with the USSD instructions after redirect.',
                                 },
@@ -379,7 +388,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         return 'Card';
       case CheckoutPaymentMethod.bank:
         return 'Bank';
-      case CheckoutPaymentMethod.bankTransfer:
+      case CheckoutPaymentMethod.manualBankTransfer:
         return 'Bank transfer';
       case CheckoutPaymentMethod.ussd:
         return 'USSD';
@@ -392,7 +401,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         return Icons.credit_card_outlined;
       case CheckoutPaymentMethod.bank:
         return Icons.account_balance_wallet_outlined;
-      case CheckoutPaymentMethod.bankTransfer:
+      case CheckoutPaymentMethod.manualBankTransfer:
         return Icons.account_balance_outlined;
       case CheckoutPaymentMethod.ussd:
         return Icons.smartphone_outlined;

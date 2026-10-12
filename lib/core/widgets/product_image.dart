@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../api/api_endpoints.dart';
 import '../constants/app_colors.dart';
 
 /// A graceful, consistent presentation for remote, picked, and missing images.
@@ -23,8 +24,11 @@ class ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (imageBytes != null) return Image.memory(imageBytes!, fit: fit);
     if (imageUrl.isNotEmpty) {
+      final resolvedUrl = imageUrl.startsWith('/')
+          ? '${ApiEndpoints.baseUrl.replaceAll(RegExp(r'/api/?$'), '')}$imageUrl'
+          : imageUrl;
       return Image.network(
-        imageUrl,
+        resolvedUrl,
         fit: fit,
         errorBuilder: (_, __, ___) => _Placeholder(icon: placeholderIcon),
       );
